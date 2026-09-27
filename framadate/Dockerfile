@@ -5,11 +5,17 @@
 # the image is pinned by digest for reproducibility.
 FROM xgaia/framadate:1.1.19@sha256:edf6890dcd676b50adf7d3bdd82a2bd7c285ec7544adc9ac837de78b15e8c718
 
-# Railway platform fix (pre-approved): force exactly one Apache MPM. Some
-# platform builds boot with more than one MPM loaded and crash-loop with
+# Railway platform fix: force exactly one Apache MPM. Some platform builds
+# boot with more than one MPM loaded and crash-loop with
 # "AH00534: apache2: Configuration error: More than one MPM loaded."
 # mod_php in this image requires the prefork MPM.
+# NOTE: on the Metal builder, deletions performed at build time may not
+# survive to the runtime (layer whiteouts are not applied there), so the
+# same cleanup is also done at boot in railway-start.sh.
 RUN a2dismod mpm_event || true; a2dismod mpm_worker || true; a2enmod mpm_prefork
+# Serve only the framadate vhost (the Debian 000-default stub would answer
+# the Railway healthcheck probe with 404 when it probes without our Host).
+RUN a2dissite 000-default || rm -f /etc/apache2/sites-enabled/000-default.conf
 
 # Ship with SMTP disabled by default. Upstream hardcodes use_smtp=true and
 # points SMTP_HOST at an unreachable example relay; PHPMailer is instantiated

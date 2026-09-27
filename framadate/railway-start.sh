@@ -13,6 +13,19 @@ set -u
 
 HTPASSWD_PATH="/usr/local/framadate/admin/.htpasswd"
 
+# Railway platform fix: the Metal builder/runtime does not apply image-layer
+# whiteouts, so this base image ends up with BOTH mpm_event and mpm_prefork
+# enabled and crash-loops with
+# "AH00534: apache2: Configuration error: More than one MPM loaded."
+# mod_php requires prefork. Deleting files in the container's writable layer
+# always works, so force exactly one MPM here at boot instead of build time.
+rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf
+rm -f /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf
+# Make the framadate vhost the only site, so every request on port 80
+# (including the Railway healthcheck, which may not send our ServerName)
+# is served by the app and not by the Debian 000-default stub.
+rm -f /etc/apache2/sites-enabled/000-default.conf
+
 echo "[railway-start] generating admin htpasswd + config from environment"
 htpasswd -bc "${HTPASSWD_PATH}" admin "${ADMIN_PASSWORD}"
 envsubst < /apache.conf > /etc/apache2/sites-available/framadate.conf
