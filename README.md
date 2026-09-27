@@ -1,5 +1,7 @@
 # OpenSondage / Framadate — Railway Template
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/opensondage-template)
+
 Classic self-hosted polls and scheduling (date + classic polls), deployable to
 Railway in one click with a MariaDB backend.
 
